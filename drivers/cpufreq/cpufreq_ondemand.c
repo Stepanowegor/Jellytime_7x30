@@ -105,6 +105,7 @@ struct cpu_dbs_info_s {
 	unsigned int freq_lo_jiffies;
 	unsigned int freq_hi_jiffies;
 	unsigned int rate_mult;
+	unsigned int load_at_prev_sample;
 	int cpu;
 	unsigned int sample_type:1;
 	/*
@@ -695,6 +696,7 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
 {
 	/* Extrapolated load of this CPU */
 	unsigned int load_at_max_freq = 0;
+	unsigned int avg_load_at_max_freq = 0;
 	unsigned int max_load_freq;
 	/* Current load across this CPU */
 	unsigned int cur_load = 0;
@@ -810,6 +812,15 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
 
 	cpufreq_notify_utilization(policy, load_at_max_freq);
 	if (dbs_tuners_ins.sampling_rate < DEFAULT_SAMPLING_RATE)
+			policy->cpuinfo.max_freq;
+
+		avg_load_at_max_freq += ((load_at_max_freq +
+				j_dbs_info->load_at_prev_sample) / 2);
+
+		j_dbs_info->load_at_prev_sample = load_at_max_freq;
+	}
+
+	if (min_sampling_rate < DEFAULT_SAMPLING_RATE)
 		cpufreq_notify_utilization(policy, avg_load_at_max_freq);
 	else
 		cpufreq_notify_utilization(policy, load_at_max_freq);
